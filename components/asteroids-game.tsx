@@ -26,6 +26,22 @@ export default function AsteroidsGame() {
   const [level, setLevel] = useState(1)
   const [lives, setLives] = useState(INITIAL_LIVES)
 
+  // Use refs for game state that shouldn't trigger re-renders
+  const gameStateRef = useRef({
+    currentScore: 0,
+    currentLives: INITIAL_LIVES,
+    currentLevel: 1,
+  })
+
+  useEffect(() => {
+    // Initialize refs when component mounts or game resets
+    gameStateRef.current = {
+      currentScore: score,
+      currentLives: lives,
+      currentLevel: level,
+    }
+  }, [score, lives, level])
+
   useEffect(() => {
     if (!gameStarted) return
 
@@ -47,12 +63,11 @@ export default function AsteroidsGame() {
     let alienShipTimer: NodeJS.Timeout | null = null
     let levelCompleteTimer: NodeJS.Timeout | null = null
     let levelComplete = false
-    let currentLives = lives // Track lives locally to handle game over timing
 
     // Initialize asteroids
     const initAsteroids = () => {
       asteroids = []
-      const numAsteroids = level + 2
+      const numAsteroids = gameStateRef.current.currentLevel + 2
       for (let i = 0; i < numAsteroids; i++) {
         // Ensure asteroids don't spawn too close to the ship
         let x, y
@@ -68,7 +83,7 @@ export default function AsteroidsGame() {
             3, // Start with large asteroids
             Math.random() * 2 - 1,
             Math.random() * 2 - 1,
-            level, // Speed increases with level
+            gameStateRef.current.currentLevel, // Speed increases with level
           ),
         )
       }
@@ -80,7 +95,11 @@ export default function AsteroidsGame() {
     // Schedule alien ship appearance
     const scheduleAlienShip = () => {
       alienShipTimer = setTimeout(() => {
-        alienShip = new AlienShip(Math.random() < 0.5 ? 0 : CANVAS_WIDTH, Math.random() * CANVAS_HEIGHT, level)
+        alienShip = new AlienShip(
+          Math.random() < 0.5 ? 0 : CANVAS_WIDTH,
+          Math.random() * CANVAS_HEIGHT,
+          gameStateRef.current.currentLevel,
+        )
       }, ALIEN_SHIP_INTERVAL)
     }
 
@@ -107,6 +126,12 @@ export default function AsteroidsGame() {
     window.addEventListener("keydown", handleKeyDown)
     window.addEventListener("keyup", handleKeyUp)
 
+    // Function to update score
+    const updateScore = (points: number) => {
+      gameStateRef.current.currentScore += points
+      setScore(gameStateRef.current.currentScore)
+    }
+
     // Function to handle ship destruction
     const destroyShip = () => {
       if (shipDestroyed) return // Prevent multiple destructions
@@ -114,15 +139,15 @@ export default function AsteroidsGame() {
       shipDestroyed = true
 
       // Decrement lives
-      currentLives--
-      setLives(currentLives)
+      gameStateRef.current.currentLives--
+      setLives(gameStateRef.current.currentLives)
 
       // Create explosion particles for the ship
       const shipExplosion = createExplosion(ship.x, ship.y, 20)
       explosionParticles = [...explosionParticles, ...shipExplosion]
 
       // Check if game over
-      if (currentLives <= 0) {
+      if (gameStateRef.current.currentLives <= 0) {
         // Wait for explosion animation to finish before showing game over
         setTimeout(() => {
           setGameOver(true)
@@ -148,7 +173,7 @@ export default function AsteroidsGame() {
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 
       if (levelComplete) {
-        drawLevelComplete(ctx, CANVAS_WIDTH, CANVAS_HEIGHT, level)
+        drawLevelComplete(ctx, CANVAS_WIDTH, CANVAS_HEIGHT, gameStateRef.current.currentLevel)
         return requestAnimationFrame(gameLoop)
       }
 
@@ -218,14 +243,23 @@ export default function AsteroidsGame() {
               const numFragments = 2
               for (let k = 0; k < numFragments; k++) {
                 asteroids.push(
-                  new Asteroid(asteroid.x, asteroid.y, newSize, Math.random() * 2 - 1, Math.random() * 2 - 1, level),
+                  new Asteroid(
+                    asteroid.x,
+                    asteroid.y,
+                    newSize,
+                    Math.random() * 2 - 1,
+                    Math.random() * 2 - 1,
+                    gameStateRef.current.currentLevel,
+                  ),
                 )
               }
             }
 
             // Add points based on asteroid size
             if (asteroid && typeof asteroid.size === "number") {
-              setScore((prev) => prev + (4 - asteroid.size) * 50)
+              // Update score immediately
+              const points = (4 - asteroid.size) * 50
+              updateScore(points)
             }
 
             // Mark asteroid and projectile for removal
@@ -240,7 +274,8 @@ export default function AsteroidsGame() {
 
         // Check for collision with alien ship
         if (alienShip && checkCollision(projectiles[i], alienShip)) {
-          setScore((prev) => prev + ALIEN_SHIP_POINTS)
+          // Update score immediately
+          updateScore(ALIEN_SHIP_POINTS)
 
           // Create explosion particles when alien ship is destroyed
           const newParticles = createExplosion(alienShip.x, alienShip.y, 30)
@@ -350,10 +385,15 @@ export default function AsteroidsGame() {
         alienShip.update(CANVAS_WIDTH, CANVAS_HEIGHT)
         alienShip.draw(ctx)
 
-        // Alien ship fires randomly
-        if (Math.random() < 0.01) {
-          const angle = Math.random() * Math.PI * 2
-          alienProjectiles.push(new Projectile(alienShip.x, alienShip.y, Math.cos(angle) * 3, Math.sin(angle) * 3))
+        // Alien ship fires randomly but aims at player
+        if (Math.random() < 0.01 && !shipDestroyed) {
+          // Calculate angle to target player ship
+          const firingAngle = alienShip.calculateFiringAngle(ship.x, ship.y)
+
+          // Create projectile with calculated angle
+          alienProjectiles.push(
+            new Projectile(alienShip.x, alienShip.y, Math.cos(firingAngle) * 3, Math.sin(firingAngle) * 3),
+          )
         }
 
         // Check for collision with ship
@@ -374,7 +414,10 @@ export default function AsteroidsGame() {
       if (asteroids.length === 0 && !levelComplete) {
         levelComplete = true
         levelCompleteTimer = setTimeout(() => {
-          setLevel((prev) => prev + 1)
+          // Increment level
+          gameStateRef.current.currentLevel++
+          setLevel(gameStateRef.current.currentLevel)
+
           levelComplete = false
           ship = new Ship(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2)
           shipDestroyed = false
@@ -382,13 +425,13 @@ export default function AsteroidsGame() {
         }, 3000)
       }
 
-      // Draw UI
-      drawScore(ctx, score, 20, 30)
-      drawLives(ctx, currentLives, CANVAS_WIDTH - 200, 30)
+      // Draw UI with current score (not React state)
+      drawScore(ctx, gameStateRef.current.currentScore, 20, 30)
+      drawLives(ctx, gameStateRef.current.currentLives, CANVAS_WIDTH - 200, 30)
 
       // Check for game over
       if (gameOver) {
-        drawGameOver(ctx, CANVAS_WIDTH, CANVAS_HEIGHT, score)
+        drawGameOver(ctx, CANVAS_WIDTH, CANVAS_HEIGHT, gameStateRef.current.currentScore)
         return
       }
 
@@ -405,7 +448,7 @@ export default function AsteroidsGame() {
       if (alienShipTimer) clearTimeout(alienShipTimer)
       if (levelCompleteTimer) clearTimeout(levelCompleteTimer)
     }
-  }, [gameStarted, level])
+  }, [gameStarted]) // Remove level, score, lives dependencies to prevent re-renders
 
   useEffect(() => {
     if (!gameStarted && !gameOver && buttonRef.current) {

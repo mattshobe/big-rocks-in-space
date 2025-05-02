@@ -1,7 +1,8 @@
 export function drawScore(ctx: CanvasRenderingContext2D, score: number, x: number, y: number) {
   ctx.fillStyle = "white"
   ctx.font = "20px Arial"
-  ctx.fillText(`${score}`, x, y)
+  ctx.textAlign = "left"
+  ctx.fillText(`Score: ${score}`, x, y)
 }
 
 export function drawLives(ctx: CanvasRenderingContext2D, lives: number, x: number, y: number) {
@@ -10,7 +11,7 @@ export function drawLives(ctx: CanvasRenderingContext2D, lives: number, x: numbe
   const spacing = 25
 
   for (let i = 0; i < lives; i++) {
-    const shipX = x + 70 + i * spacing
+    const shipX = x + i * spacing
     const shipY = y - 5
 
     // Draw a small ship icon

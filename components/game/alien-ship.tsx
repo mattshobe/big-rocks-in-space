@@ -42,33 +42,61 @@ export class AlienShip {
     ctx.save()
     ctx.translate(this.x, this.y)
 
-    // Draw football-shaped alien ship
+    // Draw flying saucer in profile view
     ctx.strokeStyle = "white"
     ctx.lineWidth = 2
 
-    // Main football-shaped body
+    // Main saucer body - elongated ellipse
     ctx.beginPath()
-    ctx.ellipse(0, 0, this.radius, this.radius / 2, 0, 0, Math.PI * 2)
+    ctx.ellipse(0, 0, this.radius * 1.5, this.radius * 0.4, 0, 0, Math.PI * 2)
     ctx.stroke()
 
-    // Glass canopy bulge on one side
+    // Top dome/cockpit
     ctx.beginPath()
-    ctx.ellipse(this.radius / 2, 0, this.radius / 3, this.radius / 4, 0, 0, Math.PI * 2)
-    ctx.strokeStyle = "#8af"
-    ctx.stroke()
-
-    // Canopy reflection
-    ctx.beginPath()
-    ctx.ellipse(this.radius / 2, -this.radius / 8, this.radius / 6, this.radius / 10, 0, 0, Math.PI)
-    ctx.strokeStyle = "white"
+    ctx.ellipse(0, -this.radius * 0.2, this.radius * 0.5, this.radius * 0.3, 0, Math.PI, 0)
     ctx.stroke()
 
     // Bottom details
     ctx.beginPath()
-    ctx.moveTo(-this.radius + 5, this.radius / 3)
-    ctx.lineTo(this.radius - 5, this.radius / 3)
+    ctx.ellipse(0, this.radius * 0.2, this.radius * 0.7, this.radius * 0.15, 0, 0, Math.PI)
     ctx.stroke()
 
+    // Windows/lights
+    ctx.beginPath()
+    for (let i = -2; i <= 2; i++) {
+      if (i === 0) continue // Skip center
+      const x = i * this.radius * 0.3
+      ctx.moveTo(x, -this.radius * 0.05)
+      ctx.lineTo(x, this.radius * 0.05)
+    }
+    ctx.stroke()
+
+    // Glow effect
+    ctx.beginPath()
+    const gradient = ctx.createRadialGradient(0, this.radius * 0.4, 0, 0, this.radius * 0.4, this.radius * 0.8)
+    gradient.addColorStop(0, "rgba(100, 200, 255, 0.5)")
+    gradient.addColorStop(1, "rgba(100, 200, 255, 0)")
+    ctx.fillStyle = gradient
+    ctx.ellipse(0, this.radius * 0.4, this.radius * 0.8, this.radius * 0.2, 0, 0, Math.PI * 2)
+    ctx.fill()
+
     ctx.restore()
+  }
+
+  // Method to calculate firing angle towards player ship
+  calculateFiringAngle(shipX: number, shipY: number): number {
+    // Calculate direction to player
+    const dx = shipX - this.x
+    const dy = shipY - this.y
+
+    // Base angle towards player
+    const baseAngle = Math.atan2(dy, dx)
+
+    // Add some randomness to make it challenging
+    // The higher the level, the more accurate the shots
+    const randomFactor = Math.PI / 4 // 45 degrees of potential randomness
+    const randomAngle = (Math.random() - 0.5) * randomFactor
+
+    return baseAngle + randomAngle
   }
 }
