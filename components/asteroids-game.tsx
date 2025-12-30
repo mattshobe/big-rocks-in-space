@@ -472,7 +472,7 @@ export default function AsteroidsGame() {
 
         {!gameStarted && !gameOver && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-80">
-            <h2 className="mb-4 text-2xl font-bold text-white">ASTEROIDS</h2>
+            <h2 className="mb-4 text-2xl font-bold text-white">BIG ROCKS IN SPACE</h2>
             <p className="mb-2 text-white">Controls:</p>
             <ul className="mb-4 text-white">
               <li>A/D or ←/→ - Rotate ship</li>
