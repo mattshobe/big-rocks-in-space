@@ -1,6 +1,6 @@
-# Asteroids
+# Big Rocks In Space
 
-A modern remake of the classic Asteroids arcade game built with Next.js, React, and TypeScript. Navigate through space, destroy asteroids, and survive increasingly challenging levels while battling hostile alien ships.
+A modern remake of a certain classic arcade game built with Next.js, React, and TypeScript. Navigate through space, destroy asteroids, and survive increasingly challenging levels while battling hostile alien ships.
 
 ![Asteroids Game](https://img.shields.io/badge/Next.js-15.2.4-black?style=flat-square&logo=next.js)
 ![React](https://img.shields.io/badge/React-19-blue?style=flat-square&logo=react)
@@ -8,7 +8,7 @@ A modern remake of the classic Asteroids arcade game built with Next.js, React, 
 
 ## Game Description
 
-This is a browser-based implementation of the classic 1979 arcade game Asteroids. Control your spaceship in a 2D space environment, destroying asteroids and alien ships while avoiding collisions. The game features progressive difficulty levels, where each new level introduces more asteroids moving at faster speeds.
+Control your spaceship in a 2D space environment, destroying asteroids and alien ships while avoiding collisions. The game features progressive difficulty levels, where each new level introduces more asteroids moving at faster speeds.
 
 **Features:**
 - Classic vector-style graphics rendered on HTML5 Canvas
