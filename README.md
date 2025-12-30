@@ -57,7 +57,7 @@ Control your spaceship in a 2D space environment, destroying asteroids and alien
 
 ### Install Dependencies
 
-```bash
+\`\`\`bash
 # Using npm
 npm install
 
@@ -66,11 +66,11 @@ yarn install
 
 # Using pnpm
 pnpm install
-```
+\`\`\`
 
 ### Run the Development Server
 
-```bash
+\`\`\`bash
 # Using npm
 npm run dev
 
@@ -79,13 +79,13 @@ yarn dev
 
 # Using pnpm
 pnpm dev
-```
+\`\`\`
 
 Open [http://localhost:3000](http://localhost:3000) in your browser to play the game.
 
 ### Build for Production
 
-```bash
+\`\`\`bash
 # Using npm
 npm run build
 npm start
@@ -97,7 +97,7 @@ yarn start
 # Using pnpm
 pnpm build
 pnpm start
-```
+\`\`\`
 
 ## Technology Stack
 
@@ -162,7 +162,7 @@ Contributions are welcome! Here are some ideas for enhancements:
 
 ## Project Structure
 
-```
+\`\`\`
 v0-asteroids/
 ├── app/                    # Next.js app directory
 │   ├── layout.tsx         # Root layout
@@ -179,7 +179,7 @@ v0-asteroids/
 │       └── ui.tsx         # Game UI rendering
 ├── styles/                # Global styles
 └── public/                # Static assets
-```
+\`\`\`
 
 ## License
 
