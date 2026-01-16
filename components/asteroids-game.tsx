@@ -9,6 +9,7 @@ import { type ExplosionParticle, createExplosion } from "./game/explosion"
 import { type AsteroidFragment, createAsteroidFragments } from "./game/asteroid-fragment"
 import { checkCollision } from "./game/collision"
 import { drawGameOver, drawLevelComplete, drawLives, drawScore } from "./game/ui"
+import { AsteroidsAudio } from "./game/asteroids-audio"
 
 const CANVAS_WIDTH = 800
 const CANVAS_HEIGHT = 500
@@ -64,6 +65,14 @@ export default function AsteroidsGame() {
     let levelCompleteTimer: NodeJS.Timeout | null = null
     let levelComplete = false
 
+    // Initialize audio system
+    const audio = new AsteroidsAudio()
+    let initialAsteroidCount = 0 // Track for backbeat escalation
+
+    // Expose audio to console for debugging/tweaking
+    // Usage: window.audio.playShoot(), window.audio.playHit('large'), etc.
+    ;(window as unknown as { audio: AsteroidsAudio }).audio = audio
+
     // Initialize asteroids
     const initAsteroids = () => {
       asteroids = []
@@ -92,6 +101,16 @@ export default function AsteroidsGame() {
     // Initialize game
     initAsteroids()
 
+    // Calculate total asteroids for backbeat escalation
+    // Each large asteroid can become 2 medium, each medium can become 2 small
+    // Total = initial * (1 + 2 + 4) = initial * 7
+    const calculateTotalAsteroids = (numLarge: number) => numLarge * 7
+    initialAsteroidCount = calculateTotalAsteroids(asteroids.length)
+
+    // Start the bass backbeat and play level start sound
+    audio.startBackbeat()
+    audio.playLevelStart()
+
     // Schedule alien ship appearance
     const scheduleAlienShip = () => {
       alienShipTimer = setTimeout(() => {
@@ -100,6 +119,8 @@ export default function AsteroidsGame() {
           Math.random() * CANVAS_HEIGHT,
           gameStateRef.current.currentLevel,
         )
+        // Start alien engine sound
+        audio.playAlienEngine(true)
       }, ALIEN_SHIP_INTERVAL)
     }
 
@@ -116,6 +137,7 @@ export default function AsteroidsGame() {
       if (e.code === "Space" && projectiles.length < MAX_PROJECTILES && !shipDestroyed) {
         const angle = ship.angle
         projectiles.push(new Projectile(ship.x, ship.y, Math.cos(angle) * 5, Math.sin(angle) * 5))
+        audio.playShoot()
       }
     }
 
@@ -146,8 +168,14 @@ export default function AsteroidsGame() {
       const shipExplosion = createExplosion(ship.x, ship.y, 20)
       explosionParticles = [...explosionParticles, ...shipExplosion]
 
+      // Play explosion sound for ship (medium size)
+      audio.playHit('medium')
+
       // Check if game over
       if (gameStateRef.current.currentLives <= 0) {
+        // Stop backbeat and play game over sound
+        audio.stopBackbeat()
+        audio.playGameOver()
         // Wait for explosion animation to finish before showing game over
         setTimeout(() => {
           setGameOver(true)
@@ -188,8 +216,10 @@ export default function AsteroidsGame() {
         }
         if (keys["w"] || keys["arrowup"]) {
           ship.thrust()
+          audio.playThrust(true)
         } else {
           ship.stopThrust()
+          audio.playThrust(false)
         }
 
         ship.update(CANVAS_WIDTH, CANVAS_HEIGHT)
@@ -255,11 +285,24 @@ export default function AsteroidsGame() {
               }
             }
 
-            // Add points based on asteroid size
+            // Add points based on asteroid size and play hit sound
             if (asteroid && typeof asteroid.size === "number") {
               // Update score immediately
               const points = (4 - asteroid.size) * 50
               updateScore(points)
+
+              // Play hit sound based on asteroid size (3=large, 2=medium, 1=small)
+              const sizeMap: { [key: number]: 'large' | 'medium' | 'small' } = {
+                3: 'large',
+                2: 'medium',
+                1: 'small'
+              }
+              audio.playHit(sizeMap[asteroid.size] || 'small')
+
+              // Escalate backbeat as asteroids are destroyed
+              // Count remaining asteroids including potential children
+              const remainingCount = asteroids.length - 1 + (asteroid.size > 1 ? 2 : 0)
+              audio.escalateBackbeat(remainingCount, initialAsteroidCount)
             }
 
             // Mark asteroid and projectile for removal
@@ -280,6 +323,10 @@ export default function AsteroidsGame() {
           // Create explosion particles when alien ship is destroyed
           const newParticles = createExplosion(alienShip.x, alienShip.y, 30)
           explosionParticles = [...explosionParticles, ...newParticles]
+
+          // Stop alien engine and play alien explosion sound
+          audio.playAlienEngine(false)
+          audio.playHit('alien')
 
           alienShip = null
           projectilesToRemove.add(i)
@@ -405,6 +452,10 @@ export default function AsteroidsGame() {
           const newParticles = createExplosion(alienShip.x, alienShip.y, 30)
           explosionParticles = [...explosionParticles, ...newParticles]
 
+          // Stop alien engine and play alien explosion sound
+          audio.playAlienEngine(false)
+          audio.playHit('alien')
+
           alienShip = null
           scheduleAlienShip()
         }
@@ -413,6 +464,9 @@ export default function AsteroidsGame() {
       // Check if level is complete
       if (asteroids.length === 0 && !levelComplete) {
         levelComplete = true
+        // Stop the backbeat when level completes
+        audio.stopBackbeat()
+
         levelCompleteTimer = setTimeout(() => {
           // Increment level
           gameStateRef.current.currentLevel++
@@ -422,6 +476,11 @@ export default function AsteroidsGame() {
           ship = new Ship(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2)
           shipDestroyed = false
           initAsteroids()
+
+          // Recalculate asteroid count and restart backbeat for new level
+          initialAsteroidCount = calculateTotalAsteroids(asteroids.length)
+          audio.startBackbeat()
+          audio.playLevelStart()
         }, 3000)
       }
 
@@ -447,6 +506,7 @@ export default function AsteroidsGame() {
       cancelAnimationFrame(animationId)
       if (alienShipTimer) clearTimeout(alienShipTimer)
       if (levelCompleteTimer) clearTimeout(levelCompleteTimer)
+      audio.cleanup()
     }
   }, [gameStarted]) // Remove level, score, lives dependencies to prevent re-renders
 
